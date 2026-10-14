@@ -1,0 +1,20 @@
+export_log:
+  name: Export evidence log
+  description: Return recent tracker fixes, vehicle snapshots, detection evidence and boarding/alighting records from the persistent journal.
+  fields:
+    tracker:
+      name: Tracker
+      description: Optional tracker filter. Leave empty to include all trackers.
+      selector:
+        entity:
+          domain:
+            - device_tracker
+            - person
+    limit:
+      name: Maximum records
+      default: 1000
+      selector:
+        number:
+          min: 1
+          max: 10000
+          mode: box

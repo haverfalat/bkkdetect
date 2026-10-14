@@ -1,0 +1,310 @@
+{
+  "title": "BKK Detect",
+  "config": {
+    "step": {
+      "user": {
+        "title": "BKK-járműfelismerés",
+        "data": {
+          "api_key": "BKK API-kulcs",
+          "language": "Nyelv"
+        },
+        "description": "Alapból minden eszköznyomkövetőt vizsgál. A fő funkció a járműfelismerés; a hazaérkezés-becslés opcionális. GPS nélkül Nincs GPS állapotot jelez."
+      }
+    },
+    "error": {
+      "cannot_connect": "A BKK nem elérhető; ellenőrizd a kulcsot, vagy várj korlátozás esetén.",
+      "no_routes": "Előbb adj hozzá útvonalat.",
+      "no_results": "Nincs megfelelő BKK-találat. Próbálj más keresést vagy irányt.",
+      "same_stop": "A fel- és leszállóhelynek különböznie kell.",
+      "invalid_route": "Adj egyedi útvonalnevet és legalább egy szakaszt.",
+      "coordinates_pair": "Add meg mindkét koordinátát, vagy hagyd mindkettőt üresen."
+    },
+    "abort": {
+      "already_configured": "Már beállítva"
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "title": "BKK-járműfelismerés",
+        "data": {
+          "api_key": "BKK API-kulcs",
+          "language": "Nyelv"
+        },
+        "description": "Alapból minden eszköznyomkövetőt vizsgál. A fő funkció a járműfelismerés; a hazaérkezés-becslés opcionális. GPS nélkül Nincs GPS állapotot jelez."
+      },
+      "init": {
+        "title": "BKK Detect beállítása",
+        "menu_options": {
+          "trackers": "Automatikus nyomkövető-felderítés",
+          "detection": "Felismerés és kéréskorlátok",
+          "logging": "Észlelési napló",
+          "connections": "BKK-kapcsolat és nyelv",
+          "profile_select": "Nyomkövető-profil / opcionális hazaérkezés-becslés"
+        }
+      },
+      "trackers": {
+        "title": "Automatikus nyomkövető-felderítés",
+        "data": {
+          "enabled": "Járműfelismerés engedélyezése",
+          "include_trackers": "Csak ezek a nyomkövetők (üresen: minden eszköz)",
+          "exclude_trackers": "Kizárt nyomkövetők"
+        }
+      },
+      "detection": {
+        "title": "Felismerés és kéréskorlátok",
+        "data": {
+          "poll_seconds": "Lekérdezési időköz (másodperc)",
+          "requests_per_minute": "Közös BKK-kéréskeret percenként",
+          "request_timeout": "API-időkorlát (másodperc)",
+          "vehicle_cache_seconds": "Járműgyorsítótár (másodperc)",
+          "plan_cache_seconds": "Útvonalgyorsítótár (másodperc)",
+          "backoff_seconds": "Várakozás korlátozás után (másodperc)",
+          "vehicle_radius": "Járműkeresési sugár (méter)",
+          "match_distance": "Járműegyezési távolság (méter)",
+          "max_gps_accuracy": "Legnagyobb GPS-hiba (méter)",
+          "max_vehicle_age": "Járműjelentés legnagyobb kora (másodperc)",
+          "gps_stale_seconds": "GPS elavul ennyi idő után (másodperc)",
+          "history_minutes": "Egyeztetési előzmény (perc)",
+          "match_samples": "Szükséges egyező mozgásszakaszok",
+          "min_speed": "Legkisebb járműsebesség (m/mp)",
+          "min_travel": "Legkisebb egyező elmozdulás (méter)",
+          "max_speed": "Legnagyobb reális sebesség (m/mp)",
+          "max_bearing_difference": "Legnagyobb irányeltérés (fok)",
+          "ambiguity_margin": "Bizonytalan járművek megbízhatósági különbsége",
+          "match_hold_seconds": "Friss járműészlelés megőrzése (másodperc)",
+          "metro_grace_minutes": "Metró GPS-kimaradási türelmi ideje (perc)",
+          "station_radius": "Megálló-közelség (méter)",
+          "walking_speed": "Gyaloglási sebesség (m/mp)",
+          "route_expiry_minutes": "Hazaút lejárata (perc)",
+          "timetable_window_minutes": "Indulási keresési időablak (perc)",
+          "timetable_candidates": "Indulási jelöltek szakaszonként",
+          "planner_itineraries": "Javasolt útvonal-alternatívák",
+          "idle_poll_seconds": "Álló nyomkövető lekérdezési időköze (másodperc)",
+          "max_time_skew": "Telefon–jármű legnagyobb időeltérése (másodperc)",
+          "route_deviation": "Legnagyobb eltérés az útvonal alakjától (méter)",
+          "exit_samples": "Leszálláshoz szükséges különálló jelentések",
+          "exit_distance": "Leszállási távolságküszöb (méter)",
+          "active_vehicle_batch_size": "Azonosított járművek kérésenként",
+          "active_uncertainty_minutes": "Járműkövetés GPS-kimaradáskor (perc)",
+          "transit_modes": "Engedélyezett járműtípusok",
+          "metro_inference": "Jelölt metróbecslés engedélyezése"
+        }
+      },
+      "logging": {
+        "title": "Észlelési napló",
+        "data": {
+          "log_positions": "Nyomkövető-helyjelentések naplózása",
+          "log_vehicles": "BKK-járműpillanatképek naplózása",
+          "log_retention_days": "Naplómegőrzés (nap)",
+          "max_log_records": "Megőrzött naplóbejegyzések maximuma",
+          "log_flush_seconds": "Napló mentési késleltetése (másodperc)"
+        }
+      },
+      "connections": {
+        "title": "BKK-kapcsolat és nyelv",
+        "data": {
+          "api_key": "BKK API-kulcs",
+          "base_url": "BKK API alap URL",
+          "language": "Nyelv"
+        }
+      },
+      "profile_select": {
+        "title": "Nyomkövető-profil / opcionális hazaérkezés-becslés",
+        "data": {
+          "tracker": "Nyomkövető"
+        }
+      },
+      "profile": {
+        "title": "Nyomkövető-profil",
+        "menu_options": {
+          "profile_settings": "Név, GPS-forrás és opcionális cél",
+          "texts": "Szövegsablonok",
+          "routes": "Hazaútvonalak",
+          "profile_save": "Profil mentése és befejezés"
+        }
+      },
+      "profile_settings": {
+        "title": "Név, GPS-forrás és opcionális cél",
+        "data": {
+          "name": "Megjelenített név",
+          "language": "Nyelv",
+          "home_arrival_enabled": "Opcionális hazaérkezés-becslés engedélyezése",
+          "home_zone": "Célzóna",
+          "home_radius": "Otthon sugara (méter)",
+          "gps_timestamp_attribute": "GPS-időbélyeg attribútuma (üresen: HA-jelentés ideje)",
+          "home_latitude": "Cél szélessége (opcionális)",
+          "home_longitude": "Cél hosszúsága (opcionális)"
+        }
+      },
+      "texts": {
+        "title": "Szövegsablonok",
+        "data": {
+          "transit_text": "Szöveg járművön",
+          "text_home": "Otthoni szöveg",
+          "text_away": "Távolléti szöveg",
+          "text_journey": "Hazaúti szöveg",
+          "text_inferred": "Becsült metró szövege",
+          "text_unknown": "Bizonytalan helyzet szövege",
+          "transit_idle_text": "Szöveg bizonyított járműegyezés nélkül"
+        },
+        "description": "Változók: name, status, eta, line, mode, headsign, route, arrival, confidence, next_stop, transfers, vehicle, tracker. A változóneveket kapcsos zárójelek közé írd."
+      },
+      "routes": {
+        "title": "Hazaútvonalak",
+        "menu_options": {
+          "route_new": "Hazaútvonal hozzáadása",
+          "route_edit": "Meglévő útvonal szerkesztése",
+          "profile": "Nyomkövető-profil"
+        }
+      },
+      "profile_save": {
+        "title": "Profil mentése és befejezés"
+      },
+      "route_new": {
+        "title": "Hazaútvonal hozzáadása"
+      },
+      "route_edit": {
+        "title": "Meglévő útvonal szerkesztése",
+        "data": {
+          "route_id": "Útvonal"
+        }
+      },
+      "route_settings": {
+        "title": "Útvonal beállításai",
+        "data": {
+          "name": "Megjelenített név",
+          "enabled": "Járműfelismerés engedélyezése",
+          "final_walk_minutes": "Utolsó séta haza (perc)"
+        }
+      },
+      "route_menu": {
+        "title": "Útvonal: {route}",
+        "description": "{legs}",
+        "menu_options": {
+          "route_settings": "Útvonal beállításai",
+          "leg_add": "Szakasz / átszállás hozzáadása",
+          "leg_edit": "Szakasz szerkesztése",
+          "leg_move": "Szakaszok átrendezése",
+          "leg_remove": "Szakasz törlése",
+          "route_save": "Útvonal mentése",
+          "route_delete": "Útvonal törlése",
+          "routes": "Hazaútvonalak"
+        }
+      },
+      "leg_search": {
+        "title": "Szakasz hozzáadása: járatkeresés",
+        "data": {
+          "query": "BKK-keresőszöveg",
+          "transfer_minutes": "Séta és felszállási tartalék e szakasz előtt (perc)"
+        }
+      },
+      "leg_line": {
+        "title": "BKK-járat kiválasztása",
+        "data": {
+          "route_id": "Útvonal"
+        }
+      },
+      "leg_from_search": {
+        "title": "Felszállóhely keresése",
+        "data": {
+          "query": "BKK-keresőszöveg"
+        }
+      },
+      "leg_from": {
+        "title": "Felszállóhely és irány kiválasztása",
+        "data": {
+          "stop_id": "Megálló és irány"
+        }
+      },
+      "leg_to_search": {
+        "title": "Leszállóhely keresése",
+        "data": {
+          "query": "BKK-keresőszöveg"
+        }
+      },
+      "leg_to": {
+        "title": "Leszállóhely és irány kiválasztása",
+        "data": {
+          "stop_id": "Megálló és irány"
+        }
+      },
+      "leg_remove": {
+        "title": "Szakasz törlése",
+        "data": {
+          "leg_index": "Törlendő szakasz"
+        }
+      },
+      "route_save": {
+        "title": "Útvonal mentése"
+      },
+      "route_delete": {
+        "title": "Útvonal törlése",
+        "data": {
+          "confirm": "Törlés megerősítése"
+        }
+      },
+      "leg_add": {
+        "title": "Szakasz / átszállás hozzáadása"
+      },
+      "leg_edit": {
+        "title": "Szakasz szerkesztése",
+        "data": {
+          "leg_index": "Törlendő szakasz"
+        }
+      },
+      "leg_move": {
+        "title": "Szakaszok átrendezése",
+        "data": {
+          "leg_index": "Törlendő szakasz",
+          "position": "Új hely a szakaszsorrendben"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "A BKK nem elérhető; ellenőrizd a kulcsot, vagy várj korlátozás esetén.",
+      "no_routes": "Előbb adj hozzá útvonalat.",
+      "no_results": "Nincs megfelelő BKK-találat. Próbálj más keresést vagy irányt.",
+      "same_stop": "A fel- és leszállóhelynek különböznie kell.",
+      "invalid_route": "Adj egyedi útvonalnevet és legalább egy szakaszt.",
+      "coordinates_pair": "Add meg mindkét koordinátát, vagy hagyd mindkettőt üresen."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "transit": {
+        "name": "Jármű"
+      },
+      "home_arrival": {
+        "name": "Hazaérkezés"
+      },
+      "eta": {
+        "name": "Hazaérkezés-becslés"
+      },
+      "boarding": {
+        "name": "Felszállás ideje"
+      },
+      "alighting": {
+        "name": "Leszállás ideje"
+      }
+    },
+    "binary_sensor": {
+      "on_vehicle": {
+        "name": "Járművön"
+      },
+      "home_route": {
+        "name": "Hazaútvonal"
+      }
+    },
+    "select": {
+      "active_home_route": {
+        "name": "Aktív hazaútvonal"
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Frissítés"
+      }
+    }
+  }
+}

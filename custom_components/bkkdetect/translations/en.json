@@ -1,0 +1,310 @@
+{
+  "title": "BKK Detect",
+  "config": {
+    "step": {
+      "user": {
+        "title": "BKK transit detection",
+        "data": {
+          "api_key": "BKK API key",
+          "language": "Language"
+        },
+        "description": "Automatically examines all device trackers. Transit identification is the main feature; home arrival estimation is optional. Trackers without GPS are marked No GPS."
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach BKK; check the key or wait if rate limited.",
+      "no_routes": "Add a route first.",
+      "no_results": "No matching BKK results. Try another query or platform.",
+      "same_stop": "Boarding and alighting stops must differ.",
+      "invalid_route": "Enter a unique route name and add at least one leg.",
+      "coordinates_pair": "Provide both coordinates or leave both empty."
+    },
+    "abort": {
+      "already_configured": "Already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "title": "BKK transit detection",
+        "data": {
+          "api_key": "BKK API key",
+          "language": "Language"
+        },
+        "description": "Automatically examines all device trackers. Transit identification is the main feature; home arrival estimation is optional. Trackers without GPS are marked No GPS."
+      },
+      "init": {
+        "title": "Configure BKK Detect",
+        "menu_options": {
+          "trackers": "Automatic tracker discovery",
+          "detection": "Detection and request limits",
+          "logging": "Evidence journal",
+          "connections": "BKK connection and language",
+          "profile_select": "Tracker-specific profile / optional home arrival estimates"
+        }
+      },
+      "trackers": {
+        "title": "Automatic tracker discovery",
+        "data": {
+          "enabled": "Enable transit detection",
+          "include_trackers": "Only these trackers (empty: all device trackers)",
+          "exclude_trackers": "Excluded trackers"
+        }
+      },
+      "detection": {
+        "title": "Detection and request limits",
+        "data": {
+          "poll_seconds": "Polling interval (seconds)",
+          "requests_per_minute": "Shared BKK request budget per minute",
+          "request_timeout": "API timeout (seconds)",
+          "vehicle_cache_seconds": "Vehicle cache (seconds)",
+          "plan_cache_seconds": "Plan cache (seconds)",
+          "backoff_seconds": "Rate-limit backoff (seconds)",
+          "vehicle_radius": "Vehicle search radius (metres)",
+          "match_distance": "Vehicle match distance (metres)",
+          "max_gps_accuracy": "Maximum GPS error (metres)",
+          "max_vehicle_age": "Maximum vehicle report age (seconds)",
+          "gps_stale_seconds": "GPS becomes stale after (seconds)",
+          "history_minutes": "Matching history window (minutes)",
+          "match_samples": "Required matching motion segments",
+          "min_speed": "Minimum transit speed (m/s)",
+          "min_travel": "Minimum matched travel (metres)",
+          "max_speed": "Maximum plausible speed (m/s)",
+          "max_bearing_difference": "Maximum heading difference (degrees)",
+          "ambiguity_margin": "Ambiguous vehicle confidence margin",
+          "match_hold_seconds": "Keep recent transit evidence (seconds)",
+          "metro_grace_minutes": "Metro GPS-gap grace (minutes)",
+          "station_radius": "Station proximity (metres)",
+          "walking_speed": "Walking speed (m/s)",
+          "route_expiry_minutes": "Home journey expiry (minutes)",
+          "timetable_window_minutes": "Departure search window (minutes)",
+          "timetable_candidates": "Departure candidates per leg",
+          "planner_itineraries": "Suggested itinerary alternatives",
+          "idle_poll_seconds": "Stationary tracker lookup interval (seconds)",
+          "max_time_skew": "Maximum phone/vehicle time mismatch (seconds)",
+          "route_deviation": "Maximum deviation from route shape (metres)",
+          "exit_samples": "Distinct outside reports to confirm alighting",
+          "exit_distance": "Alighting separation distance (metres)",
+          "active_vehicle_batch_size": "Identified vehicles per request",
+          "active_uncertainty_minutes": "Continue vehicle lookup through GPS loss (minutes)",
+          "transit_modes": "Allowed vehicle types",
+          "metro_inference": "Allow labelled metro inference"
+        }
+      },
+      "logging": {
+        "title": "Evidence journal",
+        "data": {
+          "log_positions": "Record tracker location reports",
+          "log_vehicles": "Record BKK vehicle snapshots",
+          "log_retention_days": "Journal retention (days)",
+          "max_log_records": "Maximum retained log records",
+          "log_flush_seconds": "Journal flush delay (seconds)"
+        }
+      },
+      "connections": {
+        "title": "BKK connection and language",
+        "data": {
+          "api_key": "BKK API key",
+          "base_url": "BKK API base URL",
+          "language": "Language"
+        }
+      },
+      "profile_select": {
+        "title": "Tracker-specific profile / optional home arrival estimates",
+        "data": {
+          "tracker": "Tracker"
+        }
+      },
+      "profile": {
+        "title": "Tracker profile",
+        "menu_options": {
+          "profile_settings": "Name, GPS source and optional destination",
+          "texts": "Text templates",
+          "routes": "Home routes",
+          "profile_save": "Save profile and finish"
+        }
+      },
+      "profile_settings": {
+        "title": "Name, GPS source and optional destination",
+        "data": {
+          "name": "Display name",
+          "language": "Language",
+          "home_arrival_enabled": "Enable optional home arrival estimation",
+          "home_zone": "Destination zone",
+          "home_radius": "Home radius (metres)",
+          "gps_timestamp_attribute": "GPS timestamp attribute (empty: HA report time)",
+          "home_latitude": "Destination latitude (optional)",
+          "home_longitude": "Destination longitude (optional)"
+        }
+      },
+      "texts": {
+        "title": "Text templates",
+        "data": {
+          "transit_text": "Text while on a vehicle",
+          "text_home": "Home text",
+          "text_away": "Away text",
+          "text_journey": "Home journey text",
+          "text_inferred": "Inferred metro text",
+          "text_unknown": "Uncertain location text",
+          "transit_idle_text": "Text when not confirmed on a vehicle"
+        },
+        "description": "Variables: name, status, eta, line, mode, headsign, route, arrival, confidence, next_stop, transfers, vehicle, tracker. Enclose variable names in braces."
+      },
+      "routes": {
+        "title": "Home routes",
+        "menu_options": {
+          "route_new": "Add a home route",
+          "route_edit": "Edit an existing route",
+          "profile": "Tracker profile"
+        }
+      },
+      "profile_save": {
+        "title": "Save profile and finish"
+      },
+      "route_new": {
+        "title": "Add a home route"
+      },
+      "route_edit": {
+        "title": "Edit an existing route",
+        "data": {
+          "route_id": "Route"
+        }
+      },
+      "route_settings": {
+        "title": "Route settings",
+        "data": {
+          "name": "Display name",
+          "enabled": "Enable transit detection",
+          "final_walk_minutes": "Final walk home (minutes)"
+        }
+      },
+      "route_menu": {
+        "title": "Route: {route}",
+        "description": "{legs}",
+        "menu_options": {
+          "route_settings": "Route settings",
+          "leg_add": "Add a leg / transfer",
+          "leg_edit": "Edit a leg",
+          "leg_move": "Reorder legs",
+          "leg_remove": "Remove a leg",
+          "route_save": "Save this route",
+          "route_delete": "Delete this route",
+          "routes": "Home routes"
+        }
+      },
+      "leg_search": {
+        "title": "Add a leg: search a line",
+        "data": {
+          "query": "BKK search text",
+          "transfer_minutes": "Walking and boarding buffer before this leg (minutes)"
+        }
+      },
+      "leg_line": {
+        "title": "Select the BKK line",
+        "data": {
+          "route_id": "Route"
+        }
+      },
+      "leg_from_search": {
+        "title": "Search boarding stop",
+        "data": {
+          "query": "BKK search text"
+        }
+      },
+      "leg_from": {
+        "title": "Select boarding platform",
+        "data": {
+          "stop_id": "Stop and direction"
+        }
+      },
+      "leg_to_search": {
+        "title": "Search alighting stop",
+        "data": {
+          "query": "BKK search text"
+        }
+      },
+      "leg_to": {
+        "title": "Select alighting platform",
+        "data": {
+          "stop_id": "Stop and direction"
+        }
+      },
+      "leg_remove": {
+        "title": "Remove a leg",
+        "data": {
+          "leg_index": "Leg to remove"
+        }
+      },
+      "route_save": {
+        "title": "Save this route"
+      },
+      "route_delete": {
+        "title": "Delete this route",
+        "data": {
+          "confirm": "Confirm deletion"
+        }
+      },
+      "leg_add": {
+        "title": "Add a leg / transfer"
+      },
+      "leg_edit": {
+        "title": "Edit a leg",
+        "data": {
+          "leg_index": "Leg to remove"
+        }
+      },
+      "leg_move": {
+        "title": "Reorder legs",
+        "data": {
+          "leg_index": "Leg to remove",
+          "position": "New position in route"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach BKK; check the key or wait if rate limited.",
+      "no_routes": "Add a route first.",
+      "no_results": "No matching BKK results. Try another query or platform.",
+      "same_stop": "Boarding and alighting stops must differ.",
+      "invalid_route": "Enter a unique route name and add at least one leg.",
+      "coordinates_pair": "Provide both coordinates or leave both empty."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "transit": {
+        "name": "Transit"
+      },
+      "home_arrival": {
+        "name": "Home arrival"
+      },
+      "eta": {
+        "name": "Arrival estimate"
+      },
+      "boarding": {
+        "name": "Boarding time"
+      },
+      "alighting": {
+        "name": "Alighting time"
+      }
+    },
+    "binary_sensor": {
+      "on_vehicle": {
+        "name": "On vehicle"
+      },
+      "home_route": {
+        "name": "Home route"
+      }
+    },
+    "select": {
+      "active_home_route": {
+        "name": "Active home route"
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Refresh"
+      }
+    }
+  }
+}
