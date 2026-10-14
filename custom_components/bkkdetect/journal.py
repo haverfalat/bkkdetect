@@ -43,7 +43,11 @@ class Journal:
 
     def export(self, tracker=None, limit=1000):
         self.prune()
-        selected = [e for e in self.events if tracker is None or e.get("tracker") == tracker]
+        selected = [
+            e
+            for e in self.events
+            if tracker is None or e.get("tracker") == tracker or tracker in e.get("trackers", [])
+        ]
         return {
             "events": selected[-limit:],
             "total": len(selected),

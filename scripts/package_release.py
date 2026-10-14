@@ -1,10 +1,12 @@
 """Package only the native integration and instructions, excluding credentials."""
 
+import json
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 root = Path(__file__).resolve().parents[1]
-target = root / "dist/bkkdetect-0.3.0.zip"
+version = json.loads((root / "custom_components/bkkdetect/manifest.json").read_text())["version"]
+target = root / f"dist/bkkdetect-{version}.zip"
 target.parent.mkdir(exist_ok=True)
 with ZipFile(target, "w", ZIP_DEFLATED) as archive:
     for file in sorted((root / "custom_components/bkkdetect").rglob("*")):

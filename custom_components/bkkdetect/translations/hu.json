@@ -5,19 +5,21 @@
       "user": {
         "title": "BKK-járműfelismerés",
         "data": {
-          "api_key": "BKK API-kulcs",
-          "language": "Nyelv"
+          "api_key": "BKK API-kulcs (csak BKK FUTÁR esetén szükséges)",
+          "language": "Nyelv",
+          "vehicle_provider": "Járműadatok forrása"
         },
-        "description": "Alapból minden eszköznyomkövetőt vizsgál. A fő funkció a járműfelismerés; a hazaérkezés-becslés opcionális. GPS nélkül Nincs GPS állapotot jelez."
+        "description": "Alapértelmezés: MÁV Plusz, API-kulcs nélkül, BKK és MÁV járművekkel. Minden GPS-es eszközkövetőt figyel, közös területi lekérdezéssel. A hazaérkezés becslése opcionális."
       }
     },
     "error": {
-      "cannot_connect": "A BKK nem elérhető; ellenőrizd a kulcsot, vagy várj korlátozás esetén.",
+      "cannot_connect": "A kiválasztott szolgáltató nem érhető el. Ellenőrizd a kapcsolatot, illetve BKK esetén az API-kulcsot.",
       "no_routes": "Előbb adj hozzá útvonalat.",
       "no_results": "Nincs megfelelő BKK-találat. Próbálj más keresést vagy irányt.",
       "same_stop": "A fel- és leszállóhelynek különböznie kell.",
       "invalid_route": "Adj egyedi útvonalnevet és legalább egy szakaszt.",
-      "coordinates_pair": "Add meg mindkét koordinátát, vagy hagyd mindkettőt üresen."
+      "coordinates_pair": "Add meg mindkét koordinátát, vagy hagyd mindkettőt üresen.",
+      "invalid_detection_window": "A mozgásbizonyíték ablaka nem lehet rövidebb a minimális egyezési időnél."
     },
     "abort": {
       "already_configured": "Már beállítva"
@@ -28,10 +30,11 @@
       "user": {
         "title": "BKK-járműfelismerés",
         "data": {
-          "api_key": "BKK API-kulcs",
-          "language": "Nyelv"
+          "api_key": "BKK API-kulcs (csak BKK FUTÁR esetén szükséges)",
+          "language": "Nyelv",
+          "vehicle_provider": "Járműadatok forrása"
         },
-        "description": "Alapból minden eszköznyomkövetőt vizsgál. A fő funkció a járműfelismerés; a hazaérkezés-becslés opcionális. GPS nélkül Nincs GPS állapotot jelez."
+        "description": "Alapértelmezés: MÁV Plusz, API-kulcs nélkül, BKK és MÁV járművekkel. Minden GPS-es eszközkövetőt figyel, közös területi lekérdezéssel. A hazaérkezés becslése opcionális."
       },
       "init": {
         "title": "BKK Detect beállítása",
@@ -39,7 +42,7 @@
           "trackers": "Automatikus nyomkövető-felderítés",
           "detection": "Felismerés és kéréskorlátok",
           "logging": "Észlelési napló",
-          "connections": "BKK-kapcsolat és nyelv",
+          "connections": "Járműadatok forrása és nyelv",
           "profile_select": "Nyomkövető-profil / opcionális hazaérkezés-becslés"
         }
       },
@@ -55,7 +58,7 @@
         "title": "Felismerés és kéréskorlátok",
         "data": {
           "poll_seconds": "Lekérdezési időköz (másodperc)",
-          "requests_per_minute": "Közös BKK-kéréskeret percenként",
+          "requests_per_minute": "Közös szolgáltatói kéréskeret percenként",
           "request_timeout": "API-időkorlát (másodperc)",
           "vehicle_cache_seconds": "Járműgyorsítótár (másodperc)",
           "plan_cache_seconds": "Útvonalgyorsítótár (másodperc)",
@@ -88,7 +91,9 @@
           "active_vehicle_batch_size": "Azonosított járművek kérésenként",
           "active_uncertainty_minutes": "Járműkövetés GPS-kimaradáskor (perc)",
           "transit_modes": "Engedélyezett járműtípusok",
-          "metro_inference": "Jelölt metróbecslés engedélyezése"
+          "metro_inference": "Jelölt metróbecslés engedélyezése",
+          "min_match_seconds": "Minimális egyezési idő (másodperc)",
+          "movement_window_seconds": "Beszállási mozgásbizonyíték ablaka (másodperc)"
         }
       },
       "logging": {
@@ -102,12 +107,16 @@
         }
       },
       "connections": {
-        "title": "BKK-kapcsolat és nyelv",
+        "title": "Járműadatok forrása és nyelv",
         "data": {
-          "api_key": "BKK API-kulcs",
+          "api_key": "BKK API-kulcs (csak BKK FUTÁR esetén szükséges)",
           "base_url": "BKK API alap URL",
-          "language": "Nyelv"
-        }
+          "language": "Nyelv",
+          "vehicle_provider": "Járműadatok forrása",
+          "mav_base_url": "MÁV Plusz API-cím",
+          "mav_router": "MÁV Plusz útvonaltervező azonosító"
+        },
+        "description": "A MÁV Plusz a követők számától függetlenül közös területi lekérdezést használ. A BKK FUTÁR forrás API-kulcsot igényel."
       },
       "profile_select": {
         "title": "Nyomkövető-profil / opcionális hazaérkezés-becslés",
@@ -132,7 +141,7 @@
           "home_arrival_enabled": "Opcionális hazaérkezés-becslés engedélyezése",
           "home_zone": "Célzóna",
           "home_radius": "Otthon sugara (méter)",
-          "gps_timestamp_attribute": "GPS-időbélyeg attribútuma (üresen: HA-jelentés ideje)",
+          "gps_timestamp_attribute": "GPS-időbélyeg attribútum (üres: gps_timestamp vagy HA jelentési idő)",
           "home_latitude": "Cél szélessége (opcionális)",
           "home_longitude": "Cél hosszúsága (opcionális)"
         }
@@ -262,12 +271,13 @@
       }
     },
     "error": {
-      "cannot_connect": "A BKK nem elérhető; ellenőrizd a kulcsot, vagy várj korlátozás esetén.",
+      "cannot_connect": "A kiválasztott szolgáltató nem érhető el. Ellenőrizd a kapcsolatot, illetve BKK esetén az API-kulcsot.",
       "no_routes": "Előbb adj hozzá útvonalat.",
       "no_results": "Nincs megfelelő BKK-találat. Próbálj más keresést vagy irányt.",
       "same_stop": "A fel- és leszállóhelynek különböznie kell.",
       "invalid_route": "Adj egyedi útvonalnevet és legalább egy szakaszt.",
-      "coordinates_pair": "Add meg mindkét koordinátát, vagy hagyd mindkettőt üresen."
+      "coordinates_pair": "Add meg mindkét koordinátát, vagy hagyd mindkettőt üresen.",
+      "invalid_detection_window": "A mozgásbizonyíték ablaka nem lehet rövidebb a minimális egyezési időnél."
     }
   },
   "entity": {

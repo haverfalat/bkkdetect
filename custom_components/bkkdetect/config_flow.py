@@ -9,8 +9,9 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import BkkClient, BkkError, Budget
+from .api import BkkError, Budget
 from .const import BOUNDS, DEFAULTS, DOMAIN, MODES, TEXTS
+from .providers import create_client
 
 
 def text(password=False):
@@ -55,8 +56,10 @@ class BkkDetectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input:
             try:
                 options = {**deepcopy(DEFAULTS), **user_input}
-                await BkkClient(
-                    async_get_clientsession(self.hass), user_input["api_key"], options, Budget()
+                if options["vehicle_provider"] == "bkk" and not options.get("api_key"):
+                    raise BkkError("BKK API key required")
+                await create_client(
+                    async_get_clientsession(self.hass), options, Budget()
                 ).metadata()
             except BkkError:
                 errors["base"] = "cannot_connect"
@@ -64,7 +67,10 @@ class BkkDetectConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title="BKK Detect", data=user_input)
         schema = vol.Schema(
             {
-                vol.Required("api_key"): text(True),
+                vol.Required("vehicle_provider", default=DEFAULTS["vehicle_provider"]): choice(
+                    ["mavplusz", "bkk"]
+                ),
+                vol.Optional("api_key", default=""): text(True),
                 vol.Required("language", default="en"): choice(["en", "hu"]),
             }
         )
@@ -104,9 +110,7 @@ class BkkDetectOptionsFlow(config_entries.OptionsFlow):
     def client(self):
         coordinator = self.hass.data[DOMAIN]["entries"].get(self.config_entry.entry_id)
         budget = coordinator.budget if coordinator else Budget()
-        return BkkClient(
-            async_get_clientsession(self.hass), self.draft["api_key"], self.draft, budget
-        )
+        return create_client(async_get_clientsession(self.hass), self.draft, budget)
 
     async def async_step_trackers(self, user_input=None):
         if user_input is not None:
@@ -128,9 +132,13 @@ class BkkDetectOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_detection(self, user_input=None):
+        errors = {}
         if user_input is not None:
-            self.draft.update(user_input)
-            return self.save()
+            if user_input["movement_window_seconds"] < user_input["min_match_seconds"]:
+                errors["base"] = "invalid_detection_window"
+            else:
+                self.draft.update(user_input)
+                return self.save()
         keys = [
             k
             for k in BOUNDS
@@ -141,7 +149,9 @@ class BkkDetectOptionsFlow(config_entries.OptionsFlow):
             MODES, True
         )
         schema[vol.Required("metro_inference", default=self.draft["metro_inference"])] = bool
-        return self.async_show_form(step_id="detection", data_schema=vol.Schema(schema))
+        return self.async_show_form(
+            step_id="detection", data_schema=vol.Schema(schema), errors=errors
+        )
 
     async def async_step_logging(self, user_input=None):
         if user_input is not None:
@@ -163,11 +173,10 @@ class BkkDetectOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             try:
                 candidate = {**self.draft, **user_input}
-                await BkkClient(
-                    async_get_clientsession(self.hass),
-                    candidate["api_key"],
-                    candidate,
-                    self.client().budget,
+                if candidate["vehicle_provider"] == "bkk" and not candidate.get("api_key"):
+                    raise BkkError("BKK API key required")
+                await create_client(
+                    async_get_clientsession(self.hass), candidate, Budget()
                 ).metadata()
             except BkkError:
                 errors["base"] = "cannot_connect"
@@ -178,8 +187,18 @@ class BkkDetectOptionsFlow(config_entries.OptionsFlow):
             step_id="connections",
             data_schema=vol.Schema(
                 {
-                    vol.Required("api_key", default=self.draft["api_key"]): text(True),
+                    vol.Required(
+                        "vehicle_provider", default=self.draft["vehicle_provider"]
+                    ): choice(
+                        [
+                            {"value": "mavplusz", "label": "MÁV Plusz"},
+                            {"value": "bkk", "label": "BKK FUTÁR"},
+                        ]
+                    ),
+                    vol.Optional("api_key", default=self.draft.get("api_key", "")): text(True),
                     vol.Required("base_url", default=self.draft["base_url"]): text(),
+                    vol.Required("mav_base_url", default=self.draft["mav_base_url"]): text(),
+                    vol.Required("mav_router", default=self.draft["mav_router"]): text(),
                     vol.Required("language", default=self.draft["language"]): choice(["en", "hu"]),
                 }
             ),

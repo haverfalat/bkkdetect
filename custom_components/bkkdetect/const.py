@@ -1,16 +1,31 @@
 """Configuration defaults; every journey and detection setting has an options UI."""
 
 DOMAIN = "bkkdetect"
-MODES = ["BUS", "TRAM", "TROLLEYBUS", "SUBWAY", "RAIL", "SUBURBAN_RAILWAY", "FERRY"]
+MODES = [
+    "BUS",
+    "TRAM",
+    "TROLLEYBUS",
+    "SUBWAY",
+    "RAIL",
+    "SUBURBAN_RAILWAY",
+    "COACH",
+    "TRAMTRAIN",
+    "RAIL_REPLACEMENT_BUS",
+    "FERRY",
+]
 BKK_URL = "https://futar.bkk.hu/api/query/v1/ws"
+MAV_URL = "https://mavplusz.hu"
 DEFAULTS = {
+    "vehicle_provider": "mavplusz",
+    "mav_base_url": MAV_URL,
+    "mav_router": "default",
     "language": "en",
     "home_zone": "zone.home",
     "home_radius": 100,
-    "poll_seconds": 30,
+    "poll_seconds": 15,
     "requests_per_minute": 12,
     "request_timeout": 15,
-    "vehicle_cache_seconds": 25,
+    "vehicle_cache_seconds": 10,
     "plan_cache_seconds": 120,
     "backoff_seconds": 60,
     "vehicle_radius": 500,
@@ -22,6 +37,8 @@ DEFAULTS = {
     "match_samples": 3,
     "min_speed": 2,
     "min_travel": 100,
+    "min_match_seconds": 30,
+    "movement_window_seconds": 120,
     "max_speed": 55,
     "max_bearing_difference": 65,
     "ambiguity_margin": 0.06,
@@ -34,7 +51,17 @@ DEFAULTS = {
     "timetable_window_minutes": 90,
     "timetable_candidates": 4,
     "planner_itineraries": 3,
-    "transit_modes": ["BUS", "TRAM", "TROLLEYBUS", "SUBWAY"],
+    "transit_modes": [
+        "BUS",
+        "TRAM",
+        "TROLLEYBUS",
+        "SUBWAY",
+        "RAIL",
+        "SUBURBAN_RAILWAY",
+        "COACH",
+        "TRAMTRAIN",
+        "RAIL_REPLACEMENT_BUS",
+    ],
     "gps_timestamp_attribute": "",
     "base_url": BKK_URL,
     "routes": [],
@@ -73,6 +100,8 @@ BOUNDS = {
     "match_samples": (2, 10),
     "min_speed": (0.5, 10),
     "min_travel": (20, 1000),
+    "min_match_seconds": (15, 300),
+    "movement_window_seconds": (30, 600),
     "max_speed": (10, 100),
     "max_bearing_difference": (10, 180),
     "ambiguity_margin": (0.01, 0.5),

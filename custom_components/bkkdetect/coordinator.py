@@ -13,13 +13,14 @@ from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .api import BkkClient, BkkError, Budget
+from .api import BkkError, Budget
 from .const import DEFAULTS, DOMAIN
 from .detection import Fix
 from .geo import distance, epoch, point
 from .history import VehicleHistory
 from .journal import Journal
 from .journey import Journey
+from .providers import create_client
 from .transit import TransitTracker
 
 LOGGER = logging.getLogger(__name__)
@@ -37,18 +38,23 @@ class BkkDetectCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=self.options["poll_seconds"]),
         )
         domain = hass.data.setdefault(DOMAIN, {"budgets": {}, "entries": {}})
-        key_id = hashlib.sha256(self.options["api_key"].encode()).hexdigest()
+        connection = (
+            self.options["mav_base_url"] + self.options["mav_router"]
+            if self.options["vehicle_provider"] == "mavplusz"
+            else self.options.get("api_key", "")
+        )
+        key_id = self.options["vehicle_provider"] + hashlib.sha256(connection.encode()).hexdigest()
         self.budget = domain["budgets"].setdefault(key_id, Budget())
         self.budget.limits[entry.entry_id] = int(self.options["requests_per_minute"])
-        self.client = BkkClient(
-            async_get_clientsession(hass), self.options["api_key"], self.options, self.budget
-        )
+        self.client = create_client(async_get_clientsession(hass), self.options, self.budget)
         self.history = VehicleHistory()
         self.trackers = {}
         self.home_journeys = {}
         self.journal = Journal(hass, entry.entry_id, self.options)
         self.rotation = 0
         self.last_logged_status = {}
+        self.last_shared_fetch = 0
+        self.shared_error = None
 
     async def initialize(self):
         await self.journal.load()
@@ -56,9 +62,12 @@ class BkkDetectCoordinator(DataUpdateCoordinator):
         for event in self.journal.events:
             if (
                 event.get("type") == "vehicle_snapshot"
+                and event.get("provider", "bkk") == self.options["vehicle_provider"]
                 and event["recorded_epoch"] > now - self.options["history_minutes"] * 60
             ):
                 self.history.record(event["data"], event["recorded_epoch"], self.options)
+                if self.client.name == "mavplusz":
+                    self.client.remember(event["data"].get("list", []))
 
     def selected(self, state):
         includes = self.options["include_trackers"]
@@ -81,10 +90,11 @@ class BkkDetectCoordinator(DataUpdateCoordinator):
 
     def extract_fix(self, state, profile):
         position = point(state.attributes)
+        attribute = profile["gps_timestamp_attribute"] or (
+            "gps_timestamp" if "gps_timestamp" in state.attributes else ""
+        )
         stamp = (
-            epoch(state.attributes.get(profile["gps_timestamp_attribute"]))
-            if profile["gps_timestamp_attribute"]
-            else state.last_updated.timestamp()
+            epoch(state.attributes.get(attribute)) if attribute else state.last_updated.timestamp()
         )
         try:
             accuracy = max(0, float(state.attributes.get("gps_accuracy", 0)))
@@ -103,7 +113,11 @@ class BkkDetectCoordinator(DataUpdateCoordinator):
     def ingest(self, state):
         """Capture every source report, including ones occurring between polling cycles."""
         profile = self.profile(state.entity_id)
-        memory = self.trackers.setdefault(state.entity_id, TransitTracker(state.entity_id, profile))
+        memory = self.trackers.get(state.entity_id)
+        if memory is None:
+            memory = self.trackers[state.entity_id] = TransitTracker(state.entity_id, profile)
+            if state.entity_id in self.journal.states:
+                memory.restore(self.journal.states[state.entity_id], time.time())
         fix = self.extract_fix(state, profile)
         if memory.add_fix(fix, time.time()) and profile["log_positions"]:
             self.journal.append(
@@ -129,12 +143,73 @@ class BkkDetectCoordinator(DataUpdateCoordinator):
                 1, int(self.options["requests_per_minute"] * self.options["poll_seconds"] / 60)
             )
         data = {}
+        shared_error = self.shared_error
+        shared_ids = set()
+        shared_due = now - self.last_shared_fetch >= self.options["poll_seconds"]
+        if self.client.name == "mavplusz" and self.options["enabled"] and shared_due:
+            points = []
+            eligible = []
+            for state in states:
+                profile = self.profile(state.entity_id)
+                fix = self.extract_fix(state, profile)
+                if (
+                    profile["enabled"]
+                    and fix
+                    and -30 <= now - fix.timestamp <= profile["gps_stale_seconds"]
+                    and fix.accuracy <= profile["max_gps_accuracy"]
+                ):
+                    points.append(fix.position)
+                    eligible.append(state.entity_id)
+            for memory in self.trackers.values():
+                if memory.active:
+                    samples = self.history.samples.get(memory.active["vehicle_id"], [])
+                    if (
+                        samples
+                        and now - samples[-1]["timestamp"] <= self.options["max_vehicle_age"]
+                    ):
+                        location = samples[-1]["location"]
+                        points.append((location["lat"], location["lon"]))
+            if points:
+                self.last_shared_fetch = now
+                try:
+                    vehicles = await self.client.vehicles_many(points)
+                    self.history.record(vehicles, now, self.options)
+                    shared_error = self.shared_error = None
+                    shared_ids = {
+                        v["vehicleId"]
+                        for v in vehicles["list"]
+                        if not v.get("isEstimated")
+                        and not v.get("stale")
+                        and now - epoch(v["lastUpdateTime"]) <= self.options["max_vehicle_age"]
+                    }
+                    if self.options["log_vehicles"]:
+                        self.journal.append(
+                            {
+                                "type": "vehicle_snapshot",
+                                "provider": self.client.name,
+                                "source": "shared_area",
+                                "trackers": eligible,
+                                "data": vehicles,
+                            }
+                        )
+                except BkkError as exc:
+                    shared_error = self.shared_error = str(exc)
+                    self.journal.append(
+                        {
+                            "type": "api_wait_or_error",
+                            "source": "shared_area",
+                            "trackers": eligible,
+                            "message": shared_error,
+                        }
+                    )
         # Continue observing an identified vehicle even after the phone leaves its search radius.
         active_ids = sorted(
             {
                 m.active["vehicle_id"]
                 for m in self.trackers.values()
                 if m.active
+                and m.active["vehicle_id"] not in shared_ids
+                and (self.client.name == "bkk" or shared_due)
                 and m.fixes
                 and now - m.fixes[-1].timestamp < self.options["active_uncertainty_minutes"] * 60
             }
@@ -152,6 +227,7 @@ class BkkDetectCoordinator(DataUpdateCoordinator):
                             "type": "vehicle_snapshot",
                             "data": vehicles,
                             "source": "active_vehicle_ids",
+                            "provider": self.client.name,
                         }
                     )
             except BkkError as exc:
@@ -203,12 +279,13 @@ class BkkDetectCoordinator(DataUpdateCoordinator):
                 / max(1, fix.timestamp - previous.timestamp)
                 > profile["min_speed"]
             )
-            error = None
+            error = shared_error
             interval = (
                 profile["poll_seconds"] if moving or memory.active else profile["idle_poll_seconds"]
             )
             if (
-                profile["enabled"]
+                self.client.name == "bkk"
+                and profile["enabled"]
                 and fix
                 and -30 <= now - fix.timestamp <= profile["gps_stale_seconds"]
                 and fix.accuracy <= profile["max_gps_accuracy"]
@@ -220,7 +297,12 @@ class BkkDetectCoordinator(DataUpdateCoordinator):
                     self.history.record(vehicles, now, profile)
                     if profile["log_vehicles"]:
                         self.journal.append(
-                            {"type": "vehicle_snapshot", "tracker": tracker, "data": vehicles}
+                            {
+                                "type": "vehicle_snapshot",
+                                "tracker": tracker,
+                                "provider": self.client.name,
+                                "data": vehicles,
+                            }
                         )
                 except BkkError as exc:
                     error = str(exc)
@@ -245,6 +327,7 @@ class BkkDetectCoordinator(DataUpdateCoordinator):
                 language=profile["language"],
                 home_arrival_enabled=profile["home_arrival_enabled"],
                 gps_age_seconds=round(now - stamp) if fix else None,
+                vehicle_provider=self.client.name,
             )
             if error:
                 result["error"] = error
@@ -277,6 +360,8 @@ class BkkDetectCoordinator(DataUpdateCoordinator):
                         "match": result.get("match"),
                         "evidence": result.get("evidence", []),
                         "error": result.get("error"),
+                        "detection_reason": result.get("detection_reason"),
+                        "candidates": result.get("candidates", []),
                     }
                 )
                 memory.last_processed = fix.timestamp

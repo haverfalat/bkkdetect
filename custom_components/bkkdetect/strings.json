@@ -5,19 +5,21 @@
       "user": {
         "title": "BKK transit detection",
         "data": {
-          "api_key": "BKK API key",
-          "language": "Language"
+          "api_key": "BKK API key (only required for BKK FUTÁR)",
+          "language": "Language",
+          "vehicle_provider": "Vehicle data provider"
         },
-        "description": "Automatically examines all device trackers. Transit identification is the main feature; home arrival estimation is optional. Trackers without GPS are marked No GPS."
+        "description": "Default: MÁV Plusz, no API key needed, with BKK and MÁV vehicles. Examines all GPS trackers using shared area requests. Home arrival estimation is optional."
       }
     },
     "error": {
-      "cannot_connect": "Could not reach BKK; check the key or wait if rate limited.",
+      "cannot_connect": "Could not reach the selected provider. Check the connection and, for BKK FUTÁR, the API key.",
       "no_routes": "Add a route first.",
       "no_results": "No matching BKK results. Try another query or platform.",
       "same_stop": "Boarding and alighting stops must differ.",
       "invalid_route": "Enter a unique route name and add at least one leg.",
-      "coordinates_pair": "Provide both coordinates or leave both empty."
+      "coordinates_pair": "Provide both coordinates or leave both empty.",
+      "invalid_detection_window": "The motion evidence window must be at least as long as the minimum matching duration."
     },
     "abort": {
       "already_configured": "Already configured"
@@ -28,10 +30,11 @@
       "user": {
         "title": "BKK transit detection",
         "data": {
-          "api_key": "BKK API key",
-          "language": "Language"
+          "api_key": "BKK API key (only required for BKK FUTÁR)",
+          "language": "Language",
+          "vehicle_provider": "Vehicle data provider"
         },
-        "description": "Automatically examines all device trackers. Transit identification is the main feature; home arrival estimation is optional. Trackers without GPS are marked No GPS."
+        "description": "Default: MÁV Plusz, no API key needed, with BKK and MÁV vehicles. Examines all GPS trackers using shared area requests. Home arrival estimation is optional."
       },
       "init": {
         "title": "Configure BKK Detect",
@@ -39,7 +42,7 @@
           "trackers": "Automatic tracker discovery",
           "detection": "Detection and request limits",
           "logging": "Evidence journal",
-          "connections": "BKK connection and language",
+          "connections": "Vehicle provider and language",
           "profile_select": "Tracker-specific profile / optional home arrival estimates"
         }
       },
@@ -55,7 +58,7 @@
         "title": "Detection and request limits",
         "data": {
           "poll_seconds": "Polling interval (seconds)",
-          "requests_per_minute": "Shared BKK request budget per minute",
+          "requests_per_minute": "Shared provider request budget per minute",
           "request_timeout": "API timeout (seconds)",
           "vehicle_cache_seconds": "Vehicle cache (seconds)",
           "plan_cache_seconds": "Plan cache (seconds)",
@@ -88,7 +91,9 @@
           "active_vehicle_batch_size": "Identified vehicles per request",
           "active_uncertainty_minutes": "Continue vehicle lookup through GPS loss (minutes)",
           "transit_modes": "Allowed vehicle types",
-          "metro_inference": "Allow labelled metro inference"
+          "metro_inference": "Allow labelled metro inference",
+          "min_match_seconds": "Minimum matching duration (seconds)",
+          "movement_window_seconds": "Boarding motion evidence window (seconds)"
         }
       },
       "logging": {
@@ -102,12 +107,16 @@
         }
       },
       "connections": {
-        "title": "BKK connection and language",
+        "title": "Vehicle provider and language",
         "data": {
-          "api_key": "BKK API key",
+          "api_key": "BKK API key (only required for BKK FUTÁR)",
           "base_url": "BKK API base URL",
-          "language": "Language"
-        }
+          "language": "Language",
+          "vehicle_provider": "Vehicle data provider",
+          "mav_base_url": "MÁV Plusz base URL",
+          "mav_router": "MÁV Plusz OTP router"
+        },
+        "description": "MÁV Plusz shares one area query across trackers. BKK FUTÁR requires an API key. Timing and request limits remain configurable."
       },
       "profile_select": {
         "title": "Tracker-specific profile / optional home arrival estimates",
@@ -132,7 +141,7 @@
           "home_arrival_enabled": "Enable optional home arrival estimation",
           "home_zone": "Destination zone",
           "home_radius": "Home radius (metres)",
-          "gps_timestamp_attribute": "GPS timestamp attribute (empty: HA report time)",
+          "gps_timestamp_attribute": "GPS timestamp attribute (empty: gps_timestamp or HA report time)",
           "home_latitude": "Destination latitude (optional)",
           "home_longitude": "Destination longitude (optional)"
         }
@@ -262,12 +271,13 @@
       }
     },
     "error": {
-      "cannot_connect": "Could not reach BKK; check the key or wait if rate limited.",
+      "cannot_connect": "Could not reach the selected provider. Check the connection and, for BKK FUTÁR, the API key.",
       "no_routes": "Add a route first.",
       "no_results": "No matching BKK results. Try another query or platform.",
       "same_stop": "Boarding and alighting stops must differ.",
       "invalid_route": "Enter a unique route name and add at least one leg.",
-      "coordinates_pair": "Provide both coordinates or leave both empty."
+      "coordinates_pair": "Provide both coordinates or leave both empty.",
+      "invalid_detection_window": "The motion evidence window must be at least as long as the minimum matching duration."
     }
   },
   "entity": {

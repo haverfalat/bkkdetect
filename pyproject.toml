@@ -1,6 +1,6 @@
 [project]
 name = "ha-bkkdetect"
-version = "0.3.0"
+version = "0.4.0"
 description = "Native Home Assistant BKK vehicle detection and optional home arrival estimation"
 requires-python = ">=3.14.2"
 dependencies = ["pyproj==3.8.0", "shapely==2.2.0", "polyline==2.0.4"]

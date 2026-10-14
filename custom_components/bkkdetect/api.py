@@ -28,23 +28,27 @@ class Budget:
         self.limits: dict[str, int] = {}
         self.blocked_until = 0.0
 
-    def acquire(self, limit: int):
+    def acquire(self, limit: int, reserve: int = 0):
         now = time.monotonic()
         while self.requests and self.requests[0] <= now - 60:
             self.requests.popleft()
         effective = min(self.limits.values(), default=limit)
-        if now < self.blocked_until or len(self.requests) >= effective:
-            raise RateLimited("BKK request budget exhausted; waiting")
+        if now < self.blocked_until or len(self.requests) >= max(1, effective - reserve):
+            raise RateLimited("Vehicle API request budget exhausted; waiting")
         self.requests.append(now)
 
 
-class BkkClient:
+class CachedClient:
+    """Budget and cache shared by the two native async provider adapters."""
+
     def __init__(self, session: ClientSession, key: str, options: dict, budget: Budget):
         self.session, self.key, self.options, self.budget = session, key, options, budget
         self.cache: dict[str, tuple[float, Any]] = {}
         self.inflight: dict[str, asyncio.Task] = {}
 
-    async def request(self, endpoint: str, params: dict | None = None, ttl: float = 0):
+    async def request(
+        self, endpoint: str, params: dict | None = None, ttl: float = 0, reserve: int = 0
+    ):
         params = params or {}
         cache_key = endpoint + repr(sorted(params.items()))
         cached = self.cache.get(cache_key)
@@ -52,7 +56,7 @@ class BkkClient:
             return cached[1]
         if cache_key in self.inflight:
             return await asyncio.shield(self.inflight[cache_key])
-        self.budget.acquire(int(self.options["requests_per_minute"]))
+        self.budget.acquire(int(self.options["requests_per_minute"]), reserve)
         task = asyncio.create_task(self._fetch(endpoint, params))
         self.inflight[cache_key] = task
         try:
@@ -63,6 +67,10 @@ class BkkClient:
             return result
         finally:
             self.inflight.pop(cache_key, None)
+
+
+class BkkClient(CachedClient):
+    name = "bkk"
 
     async def _fetch(self, endpoint: str, params: dict):
         query = [("key", self.key), ("version", "4")]

@@ -1,6 +1,9 @@
 # BKK Detect — native Home Assistant integration
 
-**BKK vehicle detection is the main feature. Home arrival estimates are optional.**
+**Transit vehicle detection is the main feature. Home arrival estimates are optional.**
+
+Version 0.4 uses **MÁV Plusz** by default: it supplies BKK vehicles and MÁV, HÉV
+and regional vehicles without an API key. BKK FUTÁR remains selectable in HA.
 
 This installs directly into Home Assistant as `custom_components/bkkdetect`.
 It runs inside HA, uses HA's normal integration setup/options screens, and
@@ -14,7 +17,8 @@ access token, or separate configuration website is required.
 3. Find **BKK Detect** in HACS and download it.
 4. Restart Home Assistant.
 5. Go to **Settings → Devices & services → Add integration → BKK Detect**.
-6. Enter your BKK API key and choose English or Hungarian.
+6. Choose **MÁV Plusz** and English or Hungarian. No API key is needed.
+   If you select **BKK FUTÁR**, enter a BKK API key.
 
 All device trackers are examined by default. Optional home routes and arrival
 estimates can be enabled later using **Configure → Tracker-specific profile**.
@@ -25,7 +29,7 @@ estimates can be enabled later using **Configure → Tracker-specific profile**.
    on your HA instance, or extract the release ZIP into `/config`.
 2. Restart Home Assistant.
 3. Open **Settings → Devices & services → Add integration → BKK Detect**.
-4. Enter your BKK API key and choose English or Hungarian.
+4. Choose **MÁV Plusz** and your language; a key is only needed for BKK FUTÁR.
 
 If you installed the earlier WhenHome build, remove that integration entry before
 adding BKK Detect. The renamed HA domain does not automatically migrate old entries.
@@ -34,20 +38,36 @@ Requires **Home Assistant 2026.10.0 or newer**. Release ZIPs are available on
 the repository's **Releases** page. The integration runs inside HA and does not
 need a Home Assistant access token.
 
+## Updating from 0.3
+
+Replace the integration directory with the 0.4 release and restart HA. Entries
+without an explicit provider setting use MÁV Plusz. Existing custom thresholds
+and tracker selections are retained. Choose the provider under **Configure →
+Vehicle provider and language**. For regular collection, use a 15-second polling
+interval and a 10-second vehicle cache; an existing options entry may retain
+its older timing values. The simulator must use the same provider as HA.
+
 ## Default behavior
 
 - Automatically discovers **every `device_tracker.*`**, including newly added
   trackers. GPS-capable trackers are evaluated for transit travel. Trackers
   without GPS receive a `no_gps` status; it cannot locate a phone from a router
   presence sensor.
-- Collects timestamped BKK vehicle snapshots into a rolling history and captures
+- Collects timestamped live vehicle snapshots into a rolling history and captures
   every HA tracker state change, including reports between polling cycles.
 - Matches phone reports to vehicle positions **at their report timestamps**,
-  interpolating vehicle positions when appropriate. A live vehicle at the same
+  interpolating vehicle positions when appropriate. The simulator sends the vehicle GPS measurement timestamp, which the native
+  detector reads through `gps_timestamp`. A live vehicle at the same
   coordinates much later is insufficient evidence.
 - Requires repeated co-movement, direction agreement, plausible travel speed,
-  and proximity/progress along the **actual BKK trip polyline**. Speed alone or
-  a single nearby vehicle does not identify a ride. Parallel matching vehicles
+  and proximity/progress along the **actual BKK trip polyline**. Default boarding requires three matching moving segments, four independent
+  vehicle reports, at least 100 metres of matched movement and at least 30 seconds
+  of observation. Cached copies of a ping do not become additional evidence.
+  Stops and slow sections preserve evidence within the configurable two-minute
+  window, but do not count as moving segments. Movement below the reported GPS
+  error does not count. Phone and vehicle displacement directions are compared
+  over the same interval, including turns. Speed alone or a single nearby vehicle
+  does not identify a ride. Parallel matching vehicles
   produce an ambiguous result.
 - Once a journey is established, waiting motionless at a traffic light or stop
   does not count as alighting. Alighting requires multiple distinct reports
@@ -60,7 +80,7 @@ need a Home Assistant access token.
 
 The exact instant or stop is not always observable. Estimates are explicitly
 marked `exact: false`; a nearby stop is a candidate, not proof. Vehicle history
-starts when the integration runs. BKK's live API cannot reconstruct arbitrary
+starts when the integration runs. Live APIs cannot reconstruct arbitrary
 vehicle positions from before collection began. Sparse phone GPS reports may
 leave a ride unconfirmed.
 
@@ -73,14 +93,23 @@ Open **BKK Detect → Configure**:
 | Automatic tracker discovery | Enable/disable, include only selected trackers, exclusions |
 | Detection and request limits | Timing alignment, matching segments, route deviation, GPS error, speed/direction bounds, alighting evidence, caches, request budget |
 | Evidence journal | GPS/vehicle recording switches, retention, capacity, flush interval |
-| BKK connection and language | API key, API URL, English/Hungarian |
+| Vehicle provider and language | MÁV Plusz or BKK FUTÁR, provider URLs, OTP router, optional BKK key, English/Hungarian |
 | Tracker-specific profile | Name, language, optional source GPS timestamp attribute, display text, optional home arrival estimates and routes |
 
 An empty inclusion list means all `device_tracker.*` entities. You may also
 explicitly include `person.*` entities. Configure a GPS timestamp attribute if
 your tracker exposes the phone's original measurement time separately from HA's
 `last_updated`; it must be Unix seconds/milliseconds or an ISO timestamp with a
-timezone.
+timezone. With the field empty, `gps_timestamp` is used if present; otherwise
+HA's `last_updated` is used. An invalid explicit timestamp is rejected.
+
+Transit sensor attributes include `detection_reason`, the five strongest
+`candidates`, moving segment counts, independent vehicle reports, matched
+metres, observation duration, and API errors. These explain why a nearby vehicle
+is not confirmed. A confidence score is a heuristic, not a measured probability.
+GPS alone cannot reliably distinguish a passenger from a car shadowing the same
+vehicle closely; these checks reduce false positives but do not establish a
+false-positive rate.
 
 ## Evidence journal and events
 
@@ -165,19 +194,38 @@ The integration and native tile cards do not depend on this JavaScript file.
 
 ## Request limits
 
-All trackers and UI searches share one sliding-minute BKK budget. Lookups are
-cached, duplicate in-flight requests are coalesced, HTTP 429 respects
-`Retry-After` and the configured backoff, and idle trackers use a slower lookup
-interval. Round-robin processing prevents trackers at the end of the list from
-permanently losing the request budget. API failures do not fabricate journeys.
+MÁV Plusz uses **one shared bounding-area query for all eligible trackers**,
+throttled to the polling interval even if many tracker changes trigger updates.
+Only measured, timestamped positions within the configured radius of a tracker
+or tracked vehicle are kept in the evidence history and journal. Active vehicles
+missing from the area query are followed by trip and service date. Shapely's
+spatial index filters large areas efficiently. BKK FUTÁR uses location lookups
+and is less suitable for large numbers of trackers on a small request budget.
+
+Each provider connection has a shared, configurable sliding-minute budget.
+Lookups are cached and duplicate requests are coalesced. Trip geometry requests
+reserve capacity for continuing vehicle snapshots. HTTP 429 respects
+`Retry-After` and the configured backoff. MÁV Plusz needs no public API key;
+its rate limits are not assumed to be unlimited. API errors do not fabricate
+journeys.
 
 ## Development and provenance
+
+For interactive debugging with a mock phone and live BKK route shapes, see the
+[simulator instructions](tools/simulator/README.md). It supports fast local replay
+and a live mock tracker in HA; no automated test suite is added.
 
 ```sh
 uv sync --group dev
 uv run ruff format custom_components scripts
 uv run python scripts/package_release.py
 ```
+
+The MÁV Plusz adapter follows `src/lib/mavplusz` in
+[haverfalat/tkt](https://github.com/haverfalat/tkt), commit
+`130979ff8c5a17071a0b7709266207625c0e3a97`. It normalizes OTP trip shapes, service dates and real
+vehicle timestamps, including estimated-position flags. BKK GTFS identifiers
+keep their previous spelling for compatibility with saved routes.
 
 The native async Python BKK adapter follows the API endpoints and response
 models in [haverfalat/bkkfutar.js](https://github.com/haverfalat/bkkfutar.js),

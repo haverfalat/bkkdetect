@@ -1,10 +1,13 @@
 """Timestamp-aligned vehicle history; geometry uses polyline, PROJ and GEOS."""
 
 from bisect import bisect_left
+from math import isfinite
+
 import polyline
 from pyproj.exceptions import ProjError
 from shapely.errors import GEOSException
-from .geo import RouteShape, distance, epoch, interpolate
+
+from .geo import RouteShape, distance, epoch, interpolate, point
 
 
 class VehicleHistory:
@@ -19,11 +22,19 @@ class VehicleHistory:
         for vehicle in data.get("list", []):
             timestamp = epoch(vehicle.get("lastUpdateTime"))
             if (
-                timestamp < cutoff
+                not isfinite(timestamp)
+                or timestamp < cutoff
                 or timestamp > now + 30
                 or now - timestamp > options["max_vehicle_age"]
                 or vehicle.get("stale")
-                or not vehicle.get("location")
+                or vehicle.get("isEstimated")
+                or point(
+                    {
+                        "latitude": (vehicle.get("location") or {}).get("lat"),
+                        "longitude": (vehicle.get("location") or {}).get("lon"),
+                    }
+                )
+                is None
             ):
                 continue
             values = self.samples.setdefault(vehicle["vehicleId"], [])
@@ -56,12 +67,19 @@ class VehicleHistory:
                     (b["location"]["lat"], b["location"]["lon"]),
                     f,
                 )
-                return {**nearest, "position": position, "time_skew": 0, "interpolated": True}
+                return {
+                    **nearest,
+                    "position": position,
+                    "time_skew": 0,
+                    "interpolated": True,
+                    "sample_times": (a["timestamp"], b["timestamp"]),
+                }
         return {
             **nearest,
             "position": (nearest["location"]["lat"], nearest["location"]["lon"]),
             "time_skew": abs(nearest["timestamp"] - timestamp),
             "interpolated": False,
+            "sample_times": (nearest["timestamp"],),
         }
 
     def pattern(self, trip_id, data):
